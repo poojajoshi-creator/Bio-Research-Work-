@@ -6,5 +6,5 @@ import react from "@vitejs/plugin-react";
 // leave it as "/".
 export default defineConfig({
   plugins: [react()],
-  base: "/Bio-Research-Work-/",
+  base: "/fsgs-research-portal/",
 });
