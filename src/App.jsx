@@ -318,6 +318,16 @@ Error in df$fsgs_recurr : $ operator  -> df isn't a data frame yet, or column na
   },
 ];
 
+const STATS_CHEAT = {
+  tests: [
+    { test: "T-test", when: "Continuous variable, 2 groups, roughly normal distribution", h0: "The two group means are equal" },
+    { test: "Wilcoxon rank-sum (Mann-Whitney)", when: "Continuous variable, 2 groups, NOT normally distributed", h0: "The two group distributions are equal" },
+    { test: "ANOVA", when: "Continuous variable, 3+ groups \u2014 not needed for this project (FSGS only has 2 groups)", h0: "All group means are equal" },
+    { test: "Chi-square", when: "Two categorical variables, expected cell counts \u2265 5", h0: "No association between the two variables" },
+    { test: "Fisher's exact", when: "Two categorical variables, any expected cell count < 5", h0: "No association between the two variables" },
+  ],
+};
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -508,6 +518,41 @@ function ProjectNotes() {
             <p className="text-sm text-stone-600 mt-1">{a.role}</p>
           </div>
         ))}
+      </div>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-1">Stats quick reference \u2014 which test, when</h2>
+      <p className="text-sm text-stone-500 mb-3">From the Week 2 lecture: how to pick a test and what its null hypothesis (H0) says.</p>
+      <div className="rounded-lg border border-stone-200 bg-white overflow-hidden mb-4">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-stone-100 text-stone-600 text-left">
+              <th className="px-3 py-2 font-medium">Test</th>
+              <th className="px-3 py-2 font-medium">When to use</th>
+              <th className="px-3 py-2 font-medium">H0 says...</th>
+            </tr>
+          </thead>
+          <tbody>
+            {STATS_CHEAT.tests.map((t, i) => (
+              <tr key={t.test} className={i % 2 === 0 ? "bg-white" : "bg-stone-50"}>
+                <td className="px-3 py-2 font-medium text-stone-800 align-top whitespace-nowrap">{t.test}</td>
+                <td className="px-3 py-2 text-stone-600 align-top">{t.when}</td>
+                <td className="px-3 py-2 text-stone-600 align-top italic">{t.h0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 mb-3 text-sm text-stone-700">
+        <span className="font-medium text-teal-800">Decision rule: </span>
+        Reject H0 if p \u2264 0.05 \u2192 conclude there IS a statistically significant difference/association.
+        Fail to reject H0 if p &gt; 0.05 \u2192 conclude there's no evidence of one.
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 mb-8 text-sm text-stone-700">
+        <span className="font-medium text-amber-800">The SD trap (worth knowing cold): </span>
+        A p-value depends on BOTH the size of the difference AND the sample's variability (SD) \u2014 not
+        the raw difference alone. A larger mean difference \u2192 smaller p-value. A smaller SD \u2192 smaller
+        p-value (more certainty). That's why a small difference can still be significant (large sample,
+        low variance) and a large difference can be non-significant (small sample, high variance).
       </div>
 
       <h2 className="font-serif text-lg text-stone-800 mb-1">R cheat sheet \u2014 Task ii</h2>
