@@ -488,6 +488,87 @@ table(df$c_cat, df$fsgs_recurr)
 fisher.test(table(df$c_cat, df$fsgs_recurr))  # run if any cell above looks small
 `;
 
+const TASK2_SCRIPT_STEPWISE = `# ===== STEP 1: Load the tools we need =====
+library(dplyr)
+library(gtsummary)
+library(haven)
+
+# ===== STEP 2: Load the data =====
+df <- read_dta("Project1.dta")
+
+# ===== STEP 3: Look at the data before touching anything =====
+names(df)
+summary(df)
+str(df)
+table(df$fsgs_recurr)
+
+# ===== STEP 4: Tell R which columns are categories, not numbers =====
+df$fsgs_recurr <- factor(df$fsgs_recurr, labels = c("No Recurrence", "Recurrence"))
+df$agegrp      <- as.factor(df$agegrp)
+df$i_cat       <- as.factor(df$i_cat)
+df$c_cat       <- as.factor(df$c_cat)
+df$bmi35p      <- as.factor(df$bmi35p)
+
+# ===== STEP 5: Keep only the columns we need for Table 1 =====
+step1_selected <- select(df,
+  fsgs_recurr,
+  agegrp, male_pt, white_pt, black_pt, hisp_pt, asian_pt, other_pt,
+  DAYSWAIT_CHRON, retx, bmi35p, dial, diab_pt,
+  ins_priv, ins_medicaid, ins_medicare, ins_other,
+  GFR, END_EPTS, END_CPRA,
+  agegrp_don, male_don, white_don, black_don, hisp_don, asian_don, other_don,
+  diab_don, hyper_don, LD, dcd, ECD_DONOR,
+  anoxia_don, cva_don, head_trauma_don, tumor_don,
+  BMI_DON_CALC, CREAT_DON, KDPI,
+  HLAMIS, COLD_ISCH_KI,
+  local, regional, national,
+  i_cat, c_cat
+)
+
+# Check it worked: this should show ~40 columns, not 73
+names(step1_selected)
+
+# ===== STEP 6: Build the summary table (means/percentages by group) =====
+step2_summary <- tbl_summary(
+  step1_selected,
+  by = fsgs_recurr,
+  statistic = list(
+    all_continuous() ~ "{mean} ({sd})",
+    DAYSWAIT_CHRON  ~ "{median} ({p25}, {p75})"
+  ),
+  digits = list(all_continuous() ~ 2),
+  missing = "no"
+)
+
+# Look at it before moving on -- no p-values yet, just the two columns
+step2_summary
+
+# ===== STEP 7: Add the statistical tests (p-values) =====
+step3_with_pvalues <- add_p(
+  step2_summary,
+  test = list(
+    DAYSWAIT_CHRON    ~ "wilcox.test",
+    all_continuous()  ~ "t.test",
+    all_categorical() ~ "chisq.test"
+  ),
+  pvalue_fun = ~ style_pvalue(.x, digits = 3)
+)
+
+# ===== STEP 8: Add sample sizes to the column headers =====
+step4_final_table <- add_n(step3_with_pvalues)
+
+# ===== STEP 9: Look at the finished table =====
+step4_final_table
+
+# ===== STEP 10: Save it =====
+library(gt)
+gtsave(as_gt(step4_final_table), "Task2_Table1.docx")
+
+# ===== STEP 11: Sanity check small groups =====
+table(df$c_cat, df$fsgs_recurr)
+fisher.test(table(df$c_cat, df$fsgs_recurr))  # run if any cell above looks small
+`;
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -800,9 +881,11 @@ const TEST_STYLE = {
 
 function Task2Script() {
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState("stepwise");
+  const activeScript = mode === "stepwise" ? TASK2_SCRIPT_STEPWISE : TASK2_SCRIPT;
   const copyScript = async () => {
     try {
-      await navigator.clipboard.writeText(TASK2_SCRIPT);
+      await navigator.clipboard.writeText(activeScript);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (e) {
@@ -842,15 +925,36 @@ function Task2Script() {
 
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-serif text-lg text-stone-800">Full R script</h2>
-        <button
-          onClick={copyScript}
-          className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded px-2 py-1"
-        >
-          <Copy size={12} /> {copied ? "Copied!" : "Copy"}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-stone-200 overflow-hidden">
+            <button
+              onClick={() => setMode("stepwise")}
+              className={"px-2.5 py-1 text-xs " + (mode === "stepwise" ? "bg-stone-800 text-white" : "bg-white text-stone-500 hover:bg-stone-50")}
+            >
+              Beginner (step-by-step)
+            </button>
+            <button
+              onClick={() => setMode("compact")}
+              className={"px-2.5 py-1 text-xs " + (mode === "compact" ? "bg-stone-800 text-white" : "bg-white text-stone-500 hover:bg-stone-50")}
+            >
+              Compact (piped)
+            </button>
+          </div>
+          <button
+            onClick={copyScript}
+            className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded px-2 py-1"
+          >
+            <Copy size={12} /> {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
       </div>
+      <p className="text-xs text-stone-500 mb-2">
+        {mode === "stepwise"
+          ? "Each step is saved under its own name (step1_selected, step2_summary...) so you can check what each stage produced before moving to the next \u2014 easiest to follow if R/dplyr is new."
+          : "The same script written with the %>% pipe (\"and then\") to chain all the steps together \u2014 more compact once the individual steps feel familiar."}
+      </p>
       <div className="rounded-lg border border-stone-200 bg-stone-900 overflow-hidden mb-8">
-        <pre className="text-[12px] leading-relaxed text-stone-100 p-4 overflow-x-auto font-mono whitespace-pre">{TASK2_SCRIPT}</pre>
+        <pre className="text-[12px] leading-relaxed text-stone-100 p-4 overflow-x-auto font-mono whitespace-pre">{activeScript}</pre>
       </div>
 
       <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-stone-700">
