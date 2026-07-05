@@ -328,6 +328,76 @@ const STATS_CHEAT = {
   ],
 };
 
+const GLOSSARY = [
+  {
+    group: "Patient / Recipient variables",
+    items: [
+      { v: "pseudo_id", m: "A unique ID number for each patient \u2014 no clinical meaning, just an identifier.", c: null },
+      { v: "male_pt", m: "Sex of the recipient.", c: "1 = male, 0 = female" },
+      { v: "agegrp / age1, age2, age3", m: "Recipient age group. agegrp gives one category (1/2/3); age1/age2/age3 are the same groups as separate yes/no flags.", c: "1 = <40, 2 = 40\u201359, 3 = \u226560" },
+      { v: "white_pt, black_pt, hisp_pt, asian_pt, other_pt", m: "Recipient race, as 5 separate yes/no flags (one flag per race, not one combined category column for kidney).", c: "1 = yes, 0 = no (for that race)" },
+      { v: "DAYSWAIT_CHRON", m: "How many days the patient spent on the transplant waiting list before receiving their kidney.", c: "number of days" },
+      { v: "diab_pt", m: "Whether the recipient has diabetes.", c: "1 = yes, 0 = no" },
+      { v: "dial", m: "Whether the patient was on dialysis at the time of transplant.", c: "1 = yes, 0 = no" },
+      { v: "END_CPRA", m: "Sensitization level at transplant \u2014 how many antibodies the patient has. Higher = more antibodies = harder to find a matching donor.", c: "0\u2013100 scale" },
+      { v: "END_EPTS", m: "Estimated Post-Transplant Survival score. Lower score = longer expected survival after transplant.", c: "0\u20131 scale" },
+      { v: "GFR", m: "Glomerular filtration rate \u2014 a direct measure of how well the kidneys are filtering, taken at the time of transplant.", c: "GFR rate (numeric)" },
+      { v: "hcv_pt", m: "Whether the recipient tested positive for Hepatitis C.", c: "1 = yes, 0 = no" },
+      { v: "ins / ins_priv, ins_medicare, ins_medicaid, ins_other", m: "Recipient's insurance type \u2014 ins gives one category, the ins_* variables are the same as separate yes/no flags. Often used as a proxy for socioeconomic status.", c: "1 = private, 2 = Medicare, 3 = Medicaid, 4 = other" },
+      { v: "bmi35p", m: "Flag for BMI \u2265 35. Note: the dictionary label says \"donor BMI\" but this row sits under recipient variables \u2014 worth double-checking with the mentor which person's BMI this actually refers to.", c: "1 = yes, 0 = no" },
+    ],
+  },
+  {
+    group: "Donor variables",
+    items: [
+      { v: "male_don", m: "Sex of the donor.", c: "1 = yes (male), 0 = no" },
+      { v: "race_don / white_don, black_don, hisp_don, asian_don, other_don", m: "Donor race \u2014 race_don gives one category, the *_don race variables are the same as separate yes/no flags.", c: "1 = white, 2 = black, 3 = hispanic, 4 = asian, 5 = other" },
+      { v: "agegrp_don / age1_don\u2013age5_don", m: "Donor age group, as one category or as 5 separate yes/no flags.", c: "1 = <10, 2 = 10\u201319, 3 = 20\u201339, 4 = 40\u201359, 5 = \u226560" },
+      { v: "anoxia_don, cva_don, head_trauma_don, tumor_don", m: "Cause of death for deceased donors: anoxia (oxygen deprivation), stroke, head trauma, or CNS tumor \u2014 each its own yes/no flag.", c: "1 = yes, 0 = no" },
+      { v: "BMI_DON_CALC", m: "Donor's BMI at the time of transplant.", c: "numeric BMI" },
+      { v: "CREAT_DON", m: "Donor's creatinine level at the time of transplant \u2014 a marker of kidney function in the donor.", c: "numeric level" },
+      { v: "dcd", m: "Whether the donor was a \"donation after cardiac death\" case (as opposed to brain death).", c: "1 = yes, 0 = no" },
+      { v: "diab_don", m: "Whether the donor had diabetes.", c: "1 = yes, 0 = no" },
+      { v: "ECD_DONOR", m: "\"Expanded criteria donor\" \u2014 flags donors whose organs are statistically lower quality (older, higher-risk donors).", c: "1 = yes, 0 = no" },
+      { v: "hyper_don", m: "Whether the donor had hypertension (high blood pressure).", c: "1 = yes, 0 = no" },
+      { v: "KDPI", m: "Kidney Donor Profile Index \u2014 estimates how long the kidney is expected to keep working, compared to other kidneys. Lower is better.", c: "0\u20131 scale" },
+      { v: "LD", m: "Whether the kidney came from a living donor (vs. a deceased donor).", c: "1 = yes, 0 = no" },
+    ],
+  },
+  {
+    group: "Transplant / organ variables",
+    items: [
+      { v: "txyr", m: "The year the transplant took place.", c: "year" },
+      { v: "COLD_ISCH_KI", m: "Cold ischemic time \u2014 how many hours the kidney was outside the body (on ice) between retrieval and transplant. Longer times are generally worse for the organ.", c: "number of hours" },
+      { v: "DISTANCE", m: "Straight-line distance the organ traveled, from the donor hospital to the transplant center.", c: "nautical miles" },
+      { v: "HLAMIS", m: "HLA mismatch level \u2014 how well donor and recipient tissue types match. 0 is a perfect match; 6 is the worst mismatch.", c: "0 (best) \u2013 6 (worst)" },
+      { v: "local, regional, national", m: "How far the organ was shared/shipped: stayed local, went regionally, or was shipped nationally outside the region. Each is its own yes/no flag.", c: "1 = yes, 0 = no" },
+      { v: "retx", m: "Whether this transplant is a re-transplant (the patient had a prior transplant that failed).", c: "1 = yes, 0 = no" },
+    ],
+  },
+  {
+    group: "Medication variables (the core of this project)",
+    items: [
+      { v: "i_cat", m: "Induction immunosuppression category \u2014 which drug/regimen was given at the time of transplant. This is a key exposure variable for Task ii/iii.", c: "1 = Thymo, 2 = IL2, 3 = Campath, 4 = Thymo+IL2, 5 = Any Ritux" },
+      { v: "i_thy, i_il2r, i_ale, i_il2r_thy, i_ritu_all", m: "The same induction categories as i_cat, but as separate yes/no flags (Thymoglobulin, IL-2 receptor antagonist, alemtuzumab/Campath, Thymo+IL2 combo, and rituximab).", c: "1 = yes, 0 = no" },
+      { v: "c_cat", m: "Maintenance immunosuppression category \u2014 the ongoing regimen after transplant. The other key exposure variable for this project.", c: "1 = mTOR-based, 2 = Belatacept-based, 3 = CNI+MMF" },
+      { v: "c_mtor_based, c_bela_based, c_ci_mmf", m: "The same maintenance categories as c_cat, as separate yes/no flags.", c: "1 = yes, 0 = no" },
+    ],
+  },
+  {
+    group: "Outcome variables (what you're measuring)",
+    items: [
+      { v: "fsgs_recurr", m: "Whether FSGS recurred after transplant \u2014 this is the primary outcome/grouping variable for the whole project.", c: "1 = yes (recurred), 0 = no" },
+      { v: "dgf", m: "Delayed graft function \u2014 the transplanted kidney took longer than expected to start working.", c: "1 = yes, 0 = no" },
+      { v: "GSTATUS_KI", m: "Kidney graft status \u2014 whether the transplanted kidney failed. Used for the graft-survival Kaplan-Meier/Cox analysis in Task iii.", c: "1 = failed, 0 = still functioning" },
+      { v: "GTIME_KI", m: "Number of days from transplant to kidney graft failure (or to last follow-up if it didn't fail). This is the \"time\" variable paired with GSTATUS_KI for survival analysis.", c: "number of days" },
+      { v: "PSTATUS", m: "Patient status \u2014 whether the patient is alive or deceased. Used for the patient-survival analysis in Task iii.", c: "0 = alive, 1 = deceased" },
+      { v: "PTIME", m: "Number of days from transplant to patient death (or last follow-up if still alive). Paired with PSTATUS for survival analysis.", c: "number of days" },
+      { v: "LOS", m: "Length of hospital stay immediately after the transplant.", c: "number of days" },
+    ],
+  },
+];
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -489,6 +559,39 @@ function ReadingList() {
   );
 }
 
+function GlossarySection() {
+  const [openGroup, setOpenGroup] = useState(GLOSSARY[0].group);
+  return (
+    <div className="space-y-2 mb-8">
+      {GLOSSARY.map((g) => {
+        const isOpen = openGroup === g.group;
+        return (
+          <div key={g.group} className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+            <button
+              onClick={() => setOpenGroup(isOpen ? null : g.group)}
+              className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-stone-50"
+            >
+              <span className="text-sm font-medium text-stone-800">{g.group}</span>
+              <span className="text-xs font-mono text-stone-400">{g.items.length} vars {isOpen ? "\u2212" : "+"}</span>
+            </button>
+            {isOpen && (
+              <div className="border-t border-stone-100 divide-y divide-stone-100">
+                {g.items.map((it) => (
+                  <div key={it.v} className="px-4 py-3">
+                    <p className="text-sm font-mono text-teal-700">{it.v}</p>
+                    <p className="text-sm text-stone-600 mt-1">{it.m}</p>
+                    {it.c && <p className="text-xs text-stone-400 mt-1">Coding: {it.c}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProjectNotes() {
   return (
     <div className="px-6 md:px-8 py-6 max-w-3xl">
@@ -519,6 +622,13 @@ function ProjectNotes() {
           </div>
         ))}
       </div>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-1">Variable glossary \u2014 kidney dataset</h2>
+      <p className="text-sm text-stone-500 mb-3">
+        Every kidney-relevant variable from the mentor's data dictionary, in plain English. Tap a
+        group to expand it.
+      </p>
+      <GlossarySection />
 
       <h2 className="font-serif text-lg text-stone-800 mb-1">Stats quick reference \u2014 which test, when</h2>
       <p className="text-sm text-stone-500 mb-3">From the Week 2 lecture: how to pick a test and what its null hypothesis (H0) says.</p>
