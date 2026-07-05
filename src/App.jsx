@@ -559,6 +559,115 @@ function ReadingList() {
   );
 }
 
+function NormalCurveSVG() {
+  return (
+    <svg viewBox="0 0 640 230" className="w-full h-auto">
+      <path d="M40,170 C120,170 140,40 320,40 C500,40 520,170 600,170" fill="none" stroke="#0f766e" strokeWidth="3" />
+      {[50, 140, 230, 320, 410, 500, 590].map((x) => (
+        <line key={x} x1={x} y1="170" x2={x} y2="35" stroke="#a8a29e" strokeWidth="1" strokeDasharray="3,3" />
+      ))}
+      <line x1="40" y1="170" x2="600" y2="170" stroke="#78716c" strokeWidth="1.5" />
+      <text x="320" y="185" textAnchor="middle" fontSize="12" fill="#57534e">\u03bc</text>
+      <text x="230" y="185" textAnchor="middle" fontSize="11" fill="#78716c">-1\u03c3</text>
+      <text x="410" y="185" textAnchor="middle" fontSize="11" fill="#78716c">+1\u03c3</text>
+      <text x="140" y="185" textAnchor="middle" fontSize="11" fill="#78716c">-2\u03c3</text>
+      <text x="500" y="185" textAnchor="middle" fontSize="11" fill="#78716c">+2\u03c3</text>
+      <line x1="230" y1="197" x2="410" y2="197" stroke="#0f766e" strokeWidth="2" />
+      <text x="320" y="196" textAnchor="middle" fontSize="11" fill="#0f766e" fontWeight="600">68%</text>
+      <line x1="140" y1="210" x2="500" y2="210" stroke="#2563eb" strokeWidth="2" />
+      <text x="320" y="209" textAnchor="middle" fontSize="11" fill="#2563eb" fontWeight="600">95%</text>
+      <line x1="50" y1="223" x2="590" y2="223" stroke="#b45309" strokeWidth="2" />
+      <text x="320" y="222" textAnchor="middle" fontSize="11" fill="#b45309" fontWeight="600">99.7%</text>
+    </svg>
+  );
+}
+
+function BoxplotSVG() {
+  return (
+    <svg viewBox="0 0 640 160" className="w-full h-auto">
+      <line x1="60" y1="100" x2="180" y2="100" stroke="#57534e" strokeWidth="1.5" />
+      <line x1="420" y1="100" x2="560" y2="100" stroke="#57534e" strokeWidth="1.5" />
+      <line x1="60" y1="85" x2="60" y2="115" stroke="#57534e" strokeWidth="1.5" />
+      <line x1="560" y1="85" x2="560" y2="115" stroke="#57534e" strokeWidth="1.5" />
+      <rect x="180" y="70" width="240" height="60" fill="#ccfbf1" stroke="#0f766e" strokeWidth="2" />
+      <line x1="300" y1="70" x2="300" y2="130" stroke="#be123c" strokeWidth="3" />
+      <line x1="180" y1="50" x2="180" y2="58" stroke="#57534e" strokeWidth="1" />
+      <line x1="420" y1="50" x2="420" y2="58" stroke="#57534e" strokeWidth="1" />
+      <line x1="180" y1="54" x2="420" y2="54" stroke="#57534e" strokeWidth="1" />
+      <text x="300" y="45" textAnchor="middle" fontSize="12" fill="#44403c">IQR = Q3 \u2212 Q1</text>
+      <text x="60" y="148" textAnchor="middle" fontSize="12" fill="#57534e">Min</text>
+      <text x="180" y="148" textAnchor="middle" fontSize="12" fill="#0f766e" fontWeight="600">Q1</text>
+      <text x="300" y="148" textAnchor="middle" fontSize="12" fill="#be123c" fontWeight="600">Median</text>
+      <text x="420" y="148" textAnchor="middle" fontSize="12" fill="#0f766e" fontWeight="600">Q3</text>
+      <text x="560" y="148" textAnchor="middle" fontSize="12" fill="#57534e">Max</text>
+    </svg>
+  );
+}
+
+function SkewSVG() {
+  return (
+    <svg viewBox="0 0 640 200" className="w-full h-auto">
+      <text x="320" y="20" textAnchor="middle" fontSize="12" fill="#78716c">Right-skewed example (e.g., wait time, salary)</text>
+      <path d="M40,170 C80,60 140,38 190,45 C270,58 340,95 420,125 C480,148 550,160 600,168" fill="none" stroke="#b45309" strokeWidth="3" />
+      <line x1="40" y1="170" x2="600" y2="170" stroke="#78716c" strokeWidth="1.5" />
+      <line x1="175" y1="170" x2="175" y2="50" stroke="#be123c" strokeWidth="2" strokeDasharray="4,3" />
+      <line x1="255" y1="170" x2="255" y2="70" stroke="#0f766e" strokeWidth="2" strokeDasharray="4,3" />
+      <text x="175" y="185" textAnchor="middle" fontSize="12" fill="#be123c" fontWeight="600">Median</text>
+      <text x="255" y="200" textAnchor="middle" fontSize="12" fill="#0f766e" fontWeight="600">Mean</text>
+    </svg>
+  );
+}
+
+function StatsBasics() {
+  return (
+    <div className="space-y-5 mb-8">
+      <div className="rounded-lg border border-stone-200 bg-white p-4">
+        <p className="text-sm font-medium text-stone-800 mb-1">Mean vs. Median</p>
+        <p className="text-sm text-stone-600 mb-3">
+          The <b>mean</b> (average) adds up all values and divides by the count. The <b>median</b> is
+          the middle value when everything is sorted. They're equal in a symmetric distribution, but
+          in a <b>skewed</b> distribution (like wait times or salaries, which usually have a long tail
+          of large values), the mean gets pulled toward the tail while the median stays put \u2014 this is
+          exactly why the mentor's R code sometimes uses <code className="text-xs bg-stone-100 px-1 rounded">median (sd)</code> instead
+          of <code className="text-xs bg-stone-100 px-1 rounded">mean (sd)</code> for certain variables.
+        </p>
+        <SkewSVG />
+      </div>
+
+      <div className="rounded-lg border border-stone-200 bg-white p-4">
+        <p className="text-sm font-medium text-stone-800 mb-1">Standard Deviation (SD)</p>
+        <p className="text-sm text-stone-600 mb-3">
+          SD measures how spread out the data is around the mean. In a roughly normal (bell-shaped)
+          distribution, about 68% of values fall within 1 SD of the mean, 95% within 2 SD, and 99.7%
+          within 3 SD \u2014 this is the "68-95-99.7 rule." A smaller SD means the data clusters tightly
+          around the mean; a larger SD means it's more spread out.
+        </p>
+        <NormalCurveSVG />
+      </div>
+
+      <div className="rounded-lg border border-stone-200 bg-white p-4">
+        <p className="text-sm font-medium text-stone-800 mb-1">Quartiles &amp; IQR</p>
+        <p className="text-sm text-stone-600 mb-3">
+          Quartiles split sorted data into four equal parts. <b>Q1</b> (25th percentile) is the value
+          below which a quarter of the data falls; <b>Q3</b> (75th percentile) is where three-quarters
+          falls below. The <b>IQR</b> (interquartile range = Q3 \u2212 Q1) captures the middle 50% of the
+          data and is far less affected by outliers than the full min-to-max range \u2014 which is why it's
+          usually reported alongside the median rather than the mean.
+        </p>
+        <BoxplotSVG />
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-stone-700">
+        <span className="font-medium text-amber-800">Rule of thumb for Task ii: </span>
+        Roughly normal/symmetric variable \u2192 report <b>mean (SD)</b>, use a <b>t-test</b>. Skewed
+        variable (like DAYSWAIT_CHRON or COLD_ISCH_KI, which usually have long tails) \u2192 report
+        <b> median (IQR or SD)</b>, use a <b>Wilcoxon</b> test instead. Check with a quick histogram
+        or <code className="text-xs bg-white px-1 rounded">shapiro.test()</code> before deciding.
+      </div>
+    </div>
+  );
+}
+
 function GlossarySection() {
   const [openGroup, setOpenGroup] = useState(GLOSSARY[0].group);
   return (
@@ -629,6 +738,12 @@ function ProjectNotes() {
         group to expand it.
       </p>
       <GlossarySection />
+
+      <h2 className="font-serif text-lg text-stone-800 mb-1">Statistics basics \u2014 mean, SD, quartiles</h2>
+      <p className="text-sm text-stone-500 mb-3">
+        The building blocks behind every test below \u2014 what these numbers mean and when to use which one.
+      </p>
+      <StatsBasics />
 
       <h2 className="font-serif text-lg text-stone-800 mb-1">Stats quick reference \u2014 which test, when</h2>
       <p className="text-sm text-stone-500 mb-3">From the Week 2 lecture: how to pick a test and what its null hypothesis (H0) says.</p>
