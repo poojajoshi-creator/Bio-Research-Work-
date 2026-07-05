@@ -304,11 +304,18 @@ my.table.1`,
   },
   {
     title: "6. Export to Excel for submission",
-    code: `# quickest path: turn the gtsummary table into a data frame, then write it
-library(gt)
-my.table.1 %>% as_gt() %>% gt::gtsave("task2_table.docx")
-# or, for a plain spreadsheet version of your own manual results table:
-write.csv(your_results_df, "task2_table.csv", row.names = FALSE)`,
+    code: `# gt/gtsummary can't save directly to .xlsx -- flatten to a data frame first
+library(writexl)
+my.table.1_df <- as_tibble(my.table.1)
+write_xlsx(my.table.1_df, "task2_table.xlsx")
+
+# nicer formatting (bold header, auto column widths):
+library(openxlsx)
+wb <- createWorkbook()
+addWorksheet(wb, "Table 1")
+writeData(wb, "Table 1", my.table.1_df, headerStyle = createStyle(textDecoration = "bold"))
+setColWidths(wb, "Table 1", cols = 1:ncol(my.table.1_df), widths = "auto")
+saveWorkbook(wb, "task2_table.xlsx", overwrite = TRUE)`,
   },
   {
     title: "Common errors \u2014 read this before Googling",
@@ -475,11 +482,19 @@ table1 <- df %>%
 
 table1
 
-# ---- 4. Export ----
-library(gt)
-table1 %>% as_gt() %>% gt::gtsave("Task2_Table1.docx")
-# or export a flat spreadsheet version:
-# table1 %>% as_tibble() %>% write.csv("Task2_Table1.csv", row.names = FALSE)
+# ---- 4. Export to Excel ----
+# gt/gtsummary can't save directly to .xlsx -- flatten to a data frame first
+library(writexl)
+table1_df <- as_tibble(table1)
+write_xlsx(table1_df, "Task2_Table1.xlsx")
+
+# nicer formatting (bold header, auto column widths):
+# library(openxlsx)
+# wb <- createWorkbook()
+# addWorksheet(wb, "Table 1")
+# writeData(wb, "Table 1", table1_df, headerStyle = createStyle(textDecoration = "bold"))
+# setColWidths(wb, "Table 1", cols = 1:ncol(table1_df), widths = "auto")
+# saveWorkbook(wb, "Task2_Table1.xlsx", overwrite = TRUE)
 
 # ---- 5. Sanity check ----
 # Any category with a small n (e.g., c_mtor_based = 68) may need Fisher's
@@ -560,11 +575,14 @@ step4_final_table <- add_n(step3_with_pvalues)
 # ===== STEP 9: Look at the finished table =====
 step4_final_table
 
-# ===== STEP 10: Save it =====
-library(gt)
-gtsave(as_gt(step4_final_table), "Task2_Table1.docx")
+# ===== STEP 10: Turn the table into a plain data frame =====
+step5_as_dataframe <- as_tibble(step4_final_table)
 
-# ===== STEP 11: Sanity check small groups =====
+# ===== STEP 11: Save it as an actual Excel file =====
+library(writexl)
+write_xlsx(step5_as_dataframe, "Task2_Table1.xlsx")
+
+# ===== STEP 12: Sanity check small groups =====
 table(df$c_cat, df$fsgs_recurr)
 fisher.test(table(df$c_cat, df$fsgs_recurr))  # run if any cell above looks small
 `;
