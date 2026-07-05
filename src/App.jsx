@@ -12,6 +12,7 @@ import {
   AlertCircle,
   BookOpen,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 
 const STORAGE_KEY = "fsgs-portal-data";
@@ -173,44 +174,58 @@ const TRACK_STYLE = {
   py: { icon: Terminal, name: "python (optional)", cls: "text-amber-700 bg-amber-50 border-amber-200" },
 };
 
-// Day 2 reading list: 5 articles on immunosuppression's role in FSGS recurrence
+// Day 2 reading list: the team's 5 actual references from the submitted Task i summary
 const ARTICLES = [
   {
     id: "a1",
-    title: "Recurrence of FSGS after Kidney Transplantation in Adults",
-    citation: "Uffing A, P\u00e9rez-S\u00e1ez MJ, Mazzali M, et al. Clinical Journal of the American Society of Nephrology, 15(2), 247\u2013256 (2020).",
-    url: "https://doi.org/10.2215/CJN.08970719",
-    note: "The anchor study for this project. 176 biopsy-proven primary FSGS recipients across 15 centers; FSGS recurred in 32%, and 39% of those lost their graft. Best for the overview + risk-factor buckets.",
+    title: "FSGS Recurrence in Adults after Renal Transplantation",
+    citation: "Rudnicki M. BioMed Research International, 2016, 3295618.",
+    url: "https://doi.org/10.1155/2016/3295618",
+    note: "Foundational overview: recurrence occurs in 30\u201350% of allografts and is tied to poor allograft survival; covers the major risk factors (younger age at diagnosis, rapid progression to ESRD, prior graft loss to recurrence) and the circulating permeability factor hypothesis. Used for the background/overview section.",
   },
   {
     id: "a2",
-    title: "Focal segmental glomerulosclerosis: Risk for recurrence and interventions to optimize outcomes following recurrence",
-    citation: "Harshman LA, et al. Pediatric Transplantation (2022).",
-    url: "https://onlinelibrary.wiley.com/doi/10.1111/petr.14307",
-    note: "Review focused specifically on immunosuppression's role \u2014 notes there's no clear evidence for one induction regimen over another, with mixed findings on ATG and daclizumab. Best for the immunosuppression-role bucket.",
+    title: "Recurrent and de novo Glomerulonephritis After Kidney Transplantation",
+    citation: "Lim WH, Shingde M, Wong G. Frontiers in Immunology, 10, 1944 (2019).",
+    url: "https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2019.01944/full",
+    note: "Broader review of recurrent glomerular disease after transplant, with FSGS as a major example \u2014 useful for contrasting recurrent vs. de novo disease and for graft-outcome framing.",
   },
   {
     id: "a3",
-    title: "Incidence and risk factors for recurrent focal segmental glomerulosclerosis after kidney transplantation: a meta-analysis",
-    citation: "Bai J, Zhang T, Wang Y, et al. Renal Failure, 45(1), 2201341 (2023).",
-    url: "https://pubmed.ncbi.nlm.nih.gov/29117638/",
-    note: "Meta-analysis pooling risk-factor data across many cohorts \u2014 useful for showing the range of reported recurrence rates rather than relying on a single study.",
-  },
-  {
-    id: "a4",
-    title: "Kidney transplantation outcomes in patients with IgA nephropathy and other glomerular and non-glomerular primary diseases in the new era of immunosuppression",
-    citation: "Lionaki S, Makropoulos I, Panagiotellis K, et al. PLOS ONE, 16(8), e0253337 (2021).",
-    url: "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0253337",
-    note: "Directly compares maintenance regimens: tacrolimus-based maintenance was associated with lower recurrence than cyclosporine-based, and graft loss from recurrence was highest in the FSGS group of all diseases studied.",
-  },
-  {
-    id: "a5",
     title: "Treatment of post-transplant recurrent FSGS in children using plasmapheresis and augmentation of immunosuppression",
     citation: "Restrepo JM, Torres-Canchala L, Londo\u00f1o H, Manzi E, Somers MJG. BMC Nephrology, 23(1), 131 (2022).",
     url: "https://link.springer.com/article/10.1186/s12882-022-02768-w",
-    note: "Pediatric cohort testing intensified immunosuppression (plasmapheresis + cyclophosphamide added to a calcineurin inhibitor/steroid base) for treating recurrence once it happens.",
+    note: "Pediatric cohort testing intensified immunosuppression (plasmapheresis + cyclophosphamide added to a calcineurin inhibitor/steroid base) for treating recurrence once it happens \u2014 used for the immunosuppression-role section.",
+  },
+  {
+    id: "a4",
+    title: "Kidney Transplantation for Focal Segmental Glomerulosclerosis: Can We Prevent Its Recurrence? Personal Experience and Literature Review",
+    citation: "Naciri Bennani H, Elimby L, Terrec F, Malvezzi P, Noble J, Jouve T, Rostaing L. Journal of Clinical Medicine, 11(1), 93 (2021).",
+    url: "https://doi.org/10.3390/jcm11010093",
+    note: "17-patient single-center cohort (8 recurrence vs. 9 no-recurrence) testing pretransplant plasmapheresis/rituximab prophylaxis \u2014 found it did not clearly reduce recurrence risk, directly supporting the \"no definitive data\" gap this project addresses.",
+  },
+  {
+    id: "a5",
+    title: "Incidence and risk factors for recurrent focal segmental glomerulosclerosis after kidney transplantation: a meta-analysis",
+    citation: "Bai J, Zhang T, Wang Y, et al. Renal Failure, 45(1), 2201341 (2023).",
+    url: "https://www.tandfonline.com/doi/full/10.1080/0886022X.2023.2201341",
+    note: "Meta-analysis pooling risk-factor data across many cohorts \u2014 used to support the risk-factor section with a range of recurrence rates rather than one single study.",
   },
 ];
+
+const PROJECT_NOTES = {
+  background: `Focal segmental glomerulosclerosis (FSGS) is a kidney disease characterized by scarring of the glomerulus in certain parts, the filtering units of the kidney, leading to protein loss in the urine and progressive decline in kidney function. The disease can be classified as primary, secondary, genetic, or undetermined, with primary forms including de novo cases, and its exact cause is not always known, although immune and circulating permeability factors are believed to play important roles. As FSGS progresses, many patients develop chronic kidney disease and may eventually reach end-stage kidney failure, requiring renal replacement therapy such as dialysis or kidney transplantation. Kidney transplantation is considered the preferred treatment for end-stage kidney disease because it can improve both survival and quality of life compared with long-term dialysis. However, FSGS can recur after transplantation, often within days to months, and recurrence is associated with a higher risk of graft dysfunction and loss.
+
+Several studies have identified factors that increase the likelihood of FSGS recurrence following kidney transplantation. Recurrence rates are highest in patients with primary FSGS, while secondary and genetic forms generally carry a lower risk of recurrence. Younger age at disease onset, rapid progression from diagnosis to end-stage kidney disease, and previous graft loss due to recurrent FSGS have consistently been associated with an increase in recurrence risk. Patients receiving a second transplant after losing a previous graft to recurrent FSGS face a greater chance of recurrence in the new allograft. Shorter disease duration before kidney failure and younger age at transplantation are also significant predictors of recurrence.
+
+The use of immunosuppressive drugs is necessary to prevent rejection of transplanted organs, but for the specific treatment of recurrent FSGS, their role is complicated and not specifically defined. Most clinicians modify induction and maintenance immunosuppressive strategies for recurrent disease; however, no definitive data show how different classes of immunosuppressive agents affect disease severity or long-term survival. This gap is what the current study addresses.`,
+  objective: `To examine the relationship between immunosuppressive treatment strategies and post-transplant outcomes in kidney transplant recipients with FSGS, with a focus on identifying factors influencing FSGS recurrence, graft survival, and patient survival to improve long-term transplant management.`,
+  authors: [
+    { name: "Jessica Bayarjargal", school: "Briar Woods High School", role: "Overview of FSGS, kidney failure, and transplantation; drafted the clinical background section." },
+    { name: "Ruhi Nalla", school: "Thomas Jefferson High School for Science and Technology", role: "Risk factors for recurrence; drafted that section and contributed to the study objective." },
+    { name: "Rishi Wadhwani", school: "Rock Ridge High School", role: "Role of immunosuppressive therapy in recurrence; summarized current strategies, evidence gaps, and the need for further research." },
+  ],
+};
 
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
@@ -373,6 +388,40 @@ function ReadingList() {
   );
 }
 
+function ProjectNotes() {
+  return (
+    <div className="px-6 md:px-8 py-6 max-w-3xl">
+      <h1 className="font-serif text-2xl text-stone-800 mb-1">Project notes</h1>
+      <p className="text-sm text-stone-500 mb-6">
+        The finalized background and objective from the submitted Task i summary \u2014 for reference
+        while working on Tasks ii\u2013v.
+      </p>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-2">Background</h2>
+      <div className="text-sm text-stone-600 leading-relaxed space-y-3 mb-6">
+        {PROJECT_NOTES.background.split("\n\n").map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-2">Objective</h2>
+      <p className="text-sm text-stone-600 leading-relaxed mb-6 bg-teal-50 border border-teal-200 rounded-lg px-4 py-3">
+        {PROJECT_NOTES.objective}
+      </p>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-2">Team &amp; contributions</h2>
+      <div className="space-y-2">
+        {PROJECT_NOTES.authors.map((a) => (
+          <div key={a.name} className="rounded-lg border border-stone-200 bg-white px-4 py-3">
+            <p className="text-sm font-medium text-stone-800">{a.name} <span className="text-stone-400 font-normal">\u2014 {a.school}</span></p>
+            <p className="text-sm text-stone-600 mt-1">{a.role}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [view, setView] = useState("notebook");
   const [allData, setAllData] = useState(null);
@@ -455,15 +504,21 @@ export default function App() {
         <div className="flex border-b border-stone-700">
           <button
             onClick={() => setView("notebook")}
-            className={"flex-1 py-2.5 text-xs font-medium " + (view === "notebook" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+            className={"flex-1 py-2.5 text-[11px] font-medium " + (view === "notebook" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
           >
-            Daily notebook
+            Notebook
           </button>
           <button
             onClick={() => setView("reading")}
-            className={"flex-1 py-2.5 text-xs font-medium inline-flex items-center justify-center gap-1.5 " + (view === "reading" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+            className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "reading" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
           >
-            <BookOpen size={13} /> Reading list
+            <BookOpen size={12} /> Reading
+          </button>
+          <button
+            onClick={() => setView("notes")}
+            className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "notes" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+          >
+            <FileText size={12} /> Notes
           </button>
         </div>
 
@@ -518,6 +573,10 @@ export default function App() {
       {view === "reading" ? (
         <div className="flex-1 overflow-y-auto">
           <ReadingList />
+        </div>
+      ) : view === "notes" ? (
+        <div className="flex-1 overflow-y-auto">
+          <ProjectNotes />
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-w-0">
