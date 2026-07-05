@@ -81,6 +81,21 @@ const DAYS = [
       { id: "t1", track: "fsgs", label: "Sanity-check p-values against the raw group numbers" },
       { id: "t2", track: "r", label: "Format, export to Excel, write 2\u20133 sentences on key findings" },
     ]},
+  { date: "2026-07-05", wk: 2, label: "Catch-up night", deadline: "Submit Task ii TONIGHT by 10pm ET \u2014 no time tomorrow (CNA training all day)",
+    tasks: [
+      { id: "t1", track: "fsgs", label: "12:18\u201312:30 \u2014 Confirm you have: dataset, variable list, template table, mentor's R code" },
+      { id: "t2", track: "r", label: "12:30\u20131:15 \u2014 Review Week 2 stats concepts + the R cheat sheet on the Notes page" },
+      { id: "t3", track: "r", label: "1:45\u20132:15 \u2014 Install R packages: dplyr, ggplot2, gtsummary, haven, survival" },
+      { id: "t4", track: "r", label: "2:15\u20133:15 \u2014 Load real dataset; run names() \u2192 summary() \u2192 str(); confirm the recurrence column's real name" },
+      { id: "t5", track: "fsgs", label: "3:15\u20134:15 \u2014 Classify every variable: continuous or categorical" },
+      { id: "t6", track: "r", label: "4:30\u20135:30 \u2014 Continuous variables: check normality, run t-test or Wilcoxon, log each result" },
+      { id: "t7", track: "r", label: "5:30\u20136:30 \u2014 Categorical variables: build tables, run Chi-sq or Fisher's exact" },
+      { id: "t8", track: "r", label: "7:00\u20138:00 \u2014 Build the real tbl_summary() + add_p() Table 1 with all actual variables" },
+      { id: "t9", track: "fsgs", label: "8:00\u20138:45 \u2014 Match mentor's template exactly (columns, labels, decimals); export to Excel" },
+      { id: "t10", track: "fsgs", label: "8:45\u20139:15 \u2014 Write the 2\u20133 sentence findings summary" },
+      { id: "t11", track: "fsgs", label: "9:15\u20139:45 \u2014 Final proofread of table and file" },
+      { id: "t12", track: "fsgs", label: "9:45\u201310:00 \u2014 SUBMIT to mli11@gmu.edu tonight, don't wait for tomorrow", important: true },
+    ]},
   { date: "2026-07-06", wk: 3, label: null, deadline: "Task ii due, noon ET",
     tasks: [
       { id: "t1", track: "fsgs", label: "Final check" },
@@ -226,6 +241,82 @@ The use of immunosuppressive drugs is necessary to prevent rejection of transpla
     { name: "Rishi Wadhwani", school: "Rock Ridge High School", role: "Role of immunosuppressive therapy in recurrence; summarized current strategies, evidence gaps, and the need for further research." },
   ],
 };
+
+const CHEAT_SHEET = [
+  {
+    title: "0. Setup (run once per machine)",
+    code: `install.packages(c("dplyr", "ggplot2", "gtsummary", "haven", "survival"))
+
+library(dplyr)      # data wrangling (%>%, select, filter)
+library(gtsummary)  # publication-ready tables
+library(haven)      # read .dta / .sas / .sav files
+library(survival)   # for Task iii later (KM, Cox)`,
+  },
+  {
+    title: "1. Load data + the 3-step diagnostic (always do this first)",
+    code: `df <- read_dta("Project1.dta")   # or read.csv() if it's a .csv
+
+names(df)      # what columns exist?
+summary(df)    # min/max/mean + missing values (NAs)
+str(df)        # confirms each column's type (numeric/factor/character)
+
+table(df$fsgs_recurr)   # check the grouping variable: how many recurred vs. not?`,
+  },
+  {
+    title: "2. Continuous variable: is it normal? (decides t-test vs. Wilcoxon)",
+    code: `hist(df$AGE)          # quick visual check
+shapiro.test(df$AGE)  # p > 0.05 → roughly normal → use t-test
+                       # p < 0.05 → not normal   → use Wilcoxon`,
+  },
+  {
+    title: "3. Compare a continuous variable between groups",
+    code: `# T-test (if roughly normal)
+t.test(AGE ~ fsgs_recurr, data = df)
+
+# Wilcoxon rank-sum / Mann-Whitney (if not normal)
+wilcox.test(AGE ~ fsgs_recurr, data = df)`,
+  },
+  {
+    title: "4. Compare a categorical variable between groups",
+    code: `tbl <- table(df$male_pt, df$fsgs_recurr)
+tbl                          # raw counts
+prop.table(tbl, margin = 2) * 100   # column %
+
+chisq.test(tbl)              # use if all expected cell counts >= 5
+fisher.test(tbl)             # use instead if any cell count is small`,
+  },
+  {
+    title: "5. The all-in-one Table 1 (this is the actual Task ii deliverable)",
+    code: `df$fsgs_recurr <- as.factor(df$fsgs_recurr)
+
+my.table.1 <- df %>%
+  select(male_pt, AGE, white_pt, fsgs_recurr) %>%   # add all variables mentors gave you
+  tbl_summary(
+    by = fsgs_recurr,
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    missing = "no"
+  ) %>%
+  add_p(pvalue_fun = \\(x) style_pvalue(x, digits = 3))
+
+my.table.1`,
+  },
+  {
+    title: "6. Export to Excel for submission",
+    code: `# quickest path: turn the gtsummary table into a data frame, then write it
+library(gt)
+my.table.1 %>% as_gt() %>% gt::gtsave("task2_table.docx")
+# or, for a plain spreadsheet version of your own manual results table:
+write.csv(your_results_df, "task2_table.csv", row.names = FALSE)`,
+  },
+  {
+    title: "Common errors \u2014 read this before Googling",
+    code: `Error: object 'age' not found        -> R is case-sensitive. Check df$AGE vs df$age.
+NAs introduced by coercion            -> a column has text mixed into numbers. Run str(df) again.
+subscript out of bounds               -> you're indexing a row/column that doesn't exist. Recheck names(df).
+Error in df$fsgs_recurr : $ operator  -> df isn't a data frame yet, or column name is misspelled.
+  is invalid for atomic vectors`,
+  },
+];
 
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
@@ -410,11 +501,26 @@ function ProjectNotes() {
       </p>
 
       <h2 className="font-serif text-lg text-stone-800 mb-2">Team &amp; contributions</h2>
-      <div className="space-y-2">
+      <div className="space-y-2 mb-8">
         {PROJECT_NOTES.authors.map((a) => (
           <div key={a.name} className="rounded-lg border border-stone-200 bg-white px-4 py-3">
             <p className="text-sm font-medium text-stone-800">{a.name} <span className="text-stone-400 font-normal">\u2014 {a.school}</span></p>
             <p className="text-sm text-stone-600 mt-1">{a.role}</p>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-1">R cheat sheet \u2014 Task ii</h2>
+      <p className="text-sm text-stone-500 mb-3">
+        Setup through the final Table 1, in order. <code className="text-xs bg-blue-50 text-blue-700 px-1 py-0.5 rounded">fsgs_recurr</code> is
+        the grouping variable name shown in the mentor's slides for this project \u2014 swap in the real
+        column name if it turns out to be different.
+      </p>
+      <div className="space-y-3">
+        {CHEAT_SHEET.map((s) => (
+          <div key={s.title} className="rounded-lg border border-stone-200 bg-stone-900 overflow-hidden">
+            <p className="text-xs font-medium text-teal-400 px-4 pt-3 pb-1">{s.title}</p>
+            <pre className="text-[12px] leading-relaxed text-stone-100 px-4 pb-4 overflow-x-auto font-mono whitespace-pre">{s.code}</pre>
           </div>
         ))}
       </div>
