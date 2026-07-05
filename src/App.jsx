@@ -13,6 +13,8 @@ import {
   BookOpen,
   ExternalLink,
   FileText,
+  Code2,
+  Copy,
 } from "lucide-react";
 
 const STORAGE_KEY = "fsgs-portal-data";
@@ -398,6 +400,94 @@ const GLOSSARY = [
   },
 ];
 
+const TASK2_MAPPING = [
+  { label: "BMI > 35 at registration", varname: "bmi35p", test: "chisq", note: "Template colors this yellow (T-test) and says \"mean (sd)\", but bmi35p is a 0/1 flag \u2014 that's almost certainly a template error. Treated as Chi-sq here." },
+  { label: "eGFR at transplant", varname: "GFR", test: "ttest", note: null },
+  { label: "EPTS at transplant", varname: "END_EPTS", test: "ttest", note: null },
+  { label: "cPRA at transplant", varname: "END_CPRA", test: "ttest", note: null },
+  { label: "BMI at donation", varname: "BMI_DON_CALC", test: "ttest", note: null },
+  { label: "Creatinine at transplant", varname: "CREAT_DON", test: "ttest", note: null },
+  { label: "KDPI", varname: "KDPI", test: "ttest", note: null },
+  { label: "HLA mismatch level", varname: "HLAMIS", test: "ttest", note: null },
+  { label: "Cold ischemia / preservation time", varname: "COLD_ISCH_KI", test: "ttest", note: null },
+  { label: "Days on waitlist", varname: "DAYSWAIT_CHRON", test: "wilcox", note: "Already shown as median (IQR) with a * in the template \u2014 confirms Wilcoxon." },
+  { label: "Days on dialysis", varname: "\u2014", test: "missing", note: "No dialysis-duration column exists in Project1.dta \u2014 only the yes/no flag dial. Confirm with mentor whether this row should be dropped or a different variable used." },
+  { label: "Age group, race, sex, insurance, retx, dial, diabetes, donor factors, induction/maintenance category, etc.", varname: "agegrp, male_pt, race dummies, ins_*, retx, dial, diab_pt/don, donor age/sex/race, LD, dcd, ECD_DONOR, cause-of-death dummies, local/regional/national, i_cat, c_cat", test: "chisq", note: "All n (%) rows in the template \u2014 Chi-sq, or Fisher's exact if a cell count is small (e.g., c_mtor_based only has 68 patients)." },
+];
+
+const TASK2_SCRIPT = `# ==========================================================
+# Task ii — Table 1: Patient/Donor/Transplant Characteristics
+#           by FSGS Recurrence Status
+# ==========================================================
+
+library(dplyr)
+library(gtsummary)
+library(haven)
+
+# ---- 1. Load & diagnostic (always do this first) ----
+df <- read_dta("Project1.dta")
+names(df)
+summary(df)
+str(df)
+table(df$fsgs_recurr)   # 0 = No Recurrence, 1 = Recurrence
+
+# ---- 2. Prep factors ----
+df$fsgs_recurr <- factor(df$fsgs_recurr, labels = c("No Recurrence", "Recurrence"))
+df$agegrp      <- as.factor(df$agegrp)
+df$i_cat       <- as.factor(df$i_cat)
+df$c_cat       <- as.factor(df$c_cat)
+df$bmi35p      <- as.factor(df$bmi35p)   # 0/1 flag -> Chi-sq, NOT t-test
+
+# ---- 3. Build Table 1 ----
+table1 <- df %>%
+  select(
+    fsgs_recurr,
+    agegrp, male_pt, white_pt, black_pt, hisp_pt, asian_pt, other_pt,
+    DAYSWAIT_CHRON, retx, bmi35p, dial, diab_pt,
+    ins_priv, ins_medicaid, ins_medicare, ins_other,
+    GFR, END_EPTS, END_CPRA,
+    agegrp_don, male_don, white_don, black_don, hisp_don, asian_don, other_don,
+    diab_don, hyper_don, LD, dcd, ECD_DONOR,
+    anoxia_don, cva_don, head_trauma_don, tumor_don,
+    BMI_DON_CALC, CREAT_DON, KDPI,
+    HLAMIS, COLD_ISCH_KI,
+    local, regional, national,
+    i_cat, c_cat
+  ) %>%
+  tbl_summary(
+    by = fsgs_recurr,
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd})",              # T-test group (yellow rows)
+      DAYSWAIT_CHRON    ~ "{median} ({p25}, {p75})"      # Wilcoxon group
+    ),
+    digits = list(all_continuous() ~ 2),
+    missing = "no"
+  ) %>%
+  add_p(
+    test = list(
+      DAYSWAIT_CHRON    ~ "wilcox.test",
+      all_continuous()  ~ "t.test",
+      all_categorical() ~ "chisq.test"
+    ),
+    pvalue_fun = ~ style_pvalue(.x, digits = 3)
+  ) %>%
+  add_n()
+
+table1
+
+# ---- 4. Export ----
+library(gt)
+table1 %>% as_gt() %>% gt::gtsave("Task2_Table1.docx")
+# or export a flat spreadsheet version:
+# table1 %>% as_tibble() %>% write.csv("Task2_Table1.csv", row.names = FALSE)
+
+# ---- 5. Sanity check ----
+# Any category with a small n (e.g., c_mtor_based = 68) may need Fisher's
+# exact instead of Chi-sq if expected cell counts drop below 5:
+table(df$c_cat, df$fsgs_recurr)
+fisher.test(table(df$c_cat, df$fsgs_recurr))  # run if any cell above looks small
+`;
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -701,6 +791,78 @@ function GlossarySection() {
   );
 }
 
+const TEST_STYLE = {
+  ttest: { name: "T-test", cls: "text-blue-700 bg-blue-50 border-blue-200" },
+  wilcox: { name: "Wilcoxon", cls: "text-teal-700 bg-teal-50 border-teal-200" },
+  chisq: { name: "Chi-sq / Fisher's", cls: "text-amber-700 bg-amber-50 border-amber-200" },
+  missing: { name: "\u26a0 Not in data", cls: "text-rose-700 bg-rose-50 border-rose-200" },
+};
+
+function Task2Script() {
+  const [copied, setCopied] = useState(false);
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(TASK2_SCRIPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  return (
+    <div className="px-6 md:px-8 py-6 max-w-3xl">
+      <h1 className="font-serif text-2xl text-stone-800 mb-1">Task ii \u2014 R script</h1>
+      <p className="text-sm text-stone-500 mb-6">
+        Built directly from the P1_FSGS.xlsx template's color-coding and Project1.dta's real
+        variables. Yellow-highlighted rows in the template \u2192 T-test; median (IQR) rows \u2192 Wilcoxon;
+        everything else \u2192 Chi-sq/Fisher's.
+      </p>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-2">Variable \u2192 test mapping</h2>
+      <div className="space-y-2 mb-8">
+        {TASK2_MAPPING.map((m) => {
+          const style = TEST_STYLE[m.test];
+          return (
+            <div key={m.label} className="rounded-lg border border-stone-200 bg-white px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-stone-800">{m.label}</p>
+                  <p className="text-xs font-mono text-stone-400 mt-0.5">{m.varname}</p>
+                </div>
+                <span className={"shrink-0 font-mono text-[10px] uppercase tracking-wide rounded px-1.5 py-0.5 border " + style.cls}>
+                  {style.name}
+                </span>
+              </div>
+              {m.note && <p className="text-xs text-stone-500 mt-2">{m.note}</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-serif text-lg text-stone-800">Full R script</h2>
+        <button
+          onClick={copyScript}
+          className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded px-2 py-1"
+        >
+          <Copy size={12} /> {copied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+      <div className="rounded-lg border border-stone-200 bg-stone-900 overflow-hidden mb-8">
+        <pre className="text-[12px] leading-relaxed text-stone-100 p-4 overflow-x-auto font-mono whitespace-pre">{TASK2_SCRIPT}</pre>
+      </div>
+
+      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-stone-700">
+        <span className="font-medium text-rose-800">Before submitting: </span>
+        confirm with the mentor whether the "Days on dialysis" row should be dropped from the table
+        or whether a different variable (not in the current Project1.dta) is meant to fill it \u2014
+        it's currently left out of the script above.
+      </div>
+    </div>
+  );
+}
+
 function ProjectNotes() {
   return (
     <div className="px-6 md:px-8 py-6 max-w-3xl">
@@ -896,6 +1058,12 @@ export default function App() {
           >
             <FileText size={12} /> Notes
           </button>
+          <button
+            onClick={() => setView("script")}
+            className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "script" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+          >
+            <Code2 size={12} /> Script
+          </button>
         </div>
 
         {view === "notebook" && (
@@ -953,6 +1121,10 @@ export default function App() {
       ) : view === "notes" ? (
         <div className="flex-1 overflow-y-auto">
           <ProjectNotes />
+        </div>
+      ) : view === "script" ? (
+        <div className="flex-1 overflow-y-auto">
+          <Task2Script />
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-w-0">
