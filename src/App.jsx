@@ -419,7 +419,9 @@ const TASK2_MAPPING = [
   { label: "Cold ischemia / preservation time", varname: "COLD_ISCH_KI", test: "ttest", note: null },
   { label: "Days on waitlist", varname: "DAYSWAIT_CHRON", test: "wilcox", note: "Already shown as median (IQR) with a * in the template \u2014 confirms Wilcoxon." },
   { label: "Days on dialysis", varname: "\u2014", test: "missing", note: "No dialysis-duration column exists in Project1.dta \u2014 only the yes/no flag dial. Confirm with mentor whether this row should be dropped or a different variable used." },
-  { label: "Age group, race, sex, insurance, retx, dial, diabetes, donor factors, induction/maintenance category, etc.", varname: "agegrp, male_pt, race dummies, ins_*, retx, dial, diab_pt/don, donor age/sex/race, LD, dcd, ECD_DONOR, cause-of-death dummies, local/regional/national, i_cat, c_cat", test: "chisq", note: "All n (%) rows in the template \u2014 Chi-sq, or Fisher's exact if a cell count is small (e.g., c_mtor_based only has 68 patients)." },
+  { label: "Age group, race, sex, insurance, retx, dial, diabetes, donor factors, etc.", varname: "agegrp, male_pt, race dummies, ins_*, retx, dial, diab_pt/don, donor age/sex/race, LD, dcd, ECD_DONOR, cause-of-death dummies, local/regional/national", test: "chisq", note: "All n (%) rows in the template \u2014 Chi-sq, or Fisher's exact if a cell count is small." },
+  { label: "Induction regimen (Thymo, IL2, Alemtuzumab, Thymo+IL2, Any Ritux) \u2014 EACH gets its own row + p-value", varname: "i_thy, i_il2r, i_ale, i_il2r_thy, i_ritu_all", test: "chisq", note: "Use these 5 individual yes/no flags, not the combined i_cat \u2014 i_cat alone only gives one shared p-value for \"does induction matter at all,\" not a p-value per regimen." },
+  { label: "Maintenance regimen (CNI+MMF, Belatacept, mTOR) \u2014 EACH gets its own row + p-value", varname: "c_ci_mmf, c_bela_based, c_mtor_based", test: "chisq", note: "Same idea as induction \u2014 c_mtor_based has only 68 patients total, so check its cross-tab for small cells and switch to Fisher's exact if needed." },
 ];
 
 const TASK2_SCRIPT = `# ==========================================================
@@ -439,13 +441,15 @@ str(df)
 table(df$fsgs_recurr)   # 0 = No Recurrence, 1 = Recurrence
 
 # ---- 2. Prep factors ----
-df$fsgs_recurr <- factor(df$fsgs_recurr, labels = c("No Recurrence", "Recurrence"))
-df$agegrp      <- as.factor(df$agegrp)
-df$i_cat       <- as.factor(df$i_cat)
-df$c_cat       <- as.factor(df$c_cat)
+df$fsgs_recurr <- factor(df$fsgs_recurr, levels = c(0, 1), labels = c("No Recurrence", "Recurrence"))
+df$agegrp      <- haven::as_factor(df$agegrp)       # use haven::as_factor, not as.factor,
+df$agegrp_don  <- haven::as_factor(df$agegrp_don)   # so the file's real text labels are kept
 df$bmi35p      <- as.factor(df$bmi35p)   # 0/1 flag -> Chi-sq, NOT t-test
 
 # ---- 3. Build Table 1 ----
+# NOTE: i_cat/c_cat give ONE overall p-value for "does regimen matter at all."
+# The template wants each regimen as its own row with its own p-value, so we
+# use the individual 0/1 flags instead (i_thy, i_il2r, etc.) -- already in the data.
 table1 <- df %>%
   select(
     fsgs_recurr,
@@ -459,7 +463,8 @@ table1 <- df %>%
     BMI_DON_CALC, CREAT_DON, KDPI,
     HLAMIS, COLD_ISCH_KI,
     local, regional, national,
-    i_cat, c_cat
+    i_thy, i_il2r, i_ale, i_il2r_thy, i_ritu_all,   # induction, one row + one p-value each
+    c_ci_mmf, c_bela_based, c_mtor_based             # maintenance, same idea
   ) %>%
   tbl_summary(
     by = fsgs_recurr,
@@ -473,6 +478,7 @@ table1 <- df %>%
   add_p(
     test = list(
       DAYSWAIT_CHRON    ~ "wilcox.test",
+      c_mtor_based      ~ "fisher.test",   # small group (n=68) -> Fisher's, not Chi-sq
       all_continuous()  ~ "t.test",
       all_categorical() ~ "chisq.test"
     ),
@@ -518,13 +524,15 @@ str(df)
 table(df$fsgs_recurr)
 
 # ===== STEP 4: Tell R which columns are categories, not numbers =====
-df$fsgs_recurr <- factor(df$fsgs_recurr, labels = c("No Recurrence", "Recurrence"))
-df$agegrp      <- as.factor(df$agegrp)
-df$i_cat       <- as.factor(df$i_cat)
-df$c_cat       <- as.factor(df$c_cat)
+df$fsgs_recurr <- factor(df$fsgs_recurr, levels = c(0, 1), labels = c("No Recurrence", "Recurrence"))
+df$agegrp      <- haven::as_factor(df$agegrp)       # haven::as_factor keeps the file's real text labels
+df$agegrp_don  <- haven::as_factor(df$agegrp_don)
 df$bmi35p      <- as.factor(df$bmi35p)
 
 # ===== STEP 5: Keep only the columns we need for Table 1 =====
+# NOTE: using the individual induction/maintenance flags (i_thy, i_il2r, etc.)
+# instead of i_cat/c_cat, so each regimen gets its own row AND its own p-value,
+# matching the template -- i_cat/c_cat alone would only give one shared p-value.
 step1_selected <- select(df,
   fsgs_recurr,
   agegrp, male_pt, white_pt, black_pt, hisp_pt, asian_pt, other_pt,
@@ -537,10 +545,11 @@ step1_selected <- select(df,
   BMI_DON_CALC, CREAT_DON, KDPI,
   HLAMIS, COLD_ISCH_KI,
   local, regional, national,
-  i_cat, c_cat
+  i_thy, i_il2r, i_ale, i_il2r_thy, i_ritu_all,
+  c_ci_mmf, c_bela_based, c_mtor_based
 )
 
-# Check it worked: this should show ~40 columns, not 73
+# Check it worked: this should show ~44 columns, not 73
 names(step1_selected)
 
 # ===== STEP 6: Build the summary table (means/percentages by group) =====
@@ -563,6 +572,7 @@ step3_with_pvalues <- add_p(
   step2_summary,
   test = list(
     DAYSWAIT_CHRON    ~ "wilcox.test",
+    c_mtor_based      ~ "fisher.test",   # small group (n=68) -> Fisher's, not Chi-sq
     all_continuous()  ~ "t.test",
     all_categorical() ~ "chisq.test"
   ),
@@ -586,6 +596,89 @@ write_xlsx(step5_as_dataframe, "Task2_Table1.xlsx")
 table(df$c_cat, df$fsgs_recurr)
 fisher.test(table(df$c_cat, df$fsgs_recurr))  # run if any cell above looks small
 `;
+
+const TASK2_SCRIPT_INDIVIDUAL = `# ===== Individual calculation approach =====
+# Instead of one big pipeline, calculate n (%) and a p-value for each
+# regimen ONE AT A TIME -- slower to type, but much easier to see exactly
+# what's happening at each step. This is what Rishi used.
+
+library(haven)
+df <- read_dta("Project1.dta")
+
+# Label the outcome so results are readable
+df$fsgs_recurr <- factor(df$fsgs_recurr, levels = c(0, 1),
+                          labels = c("No Recurrence", "Recurrence"))
+
+# ---- A small helper so we don't retype the same 6 lines for every variable ----
+analyze_variable <- function(varname) {
+  tbl <- table(df[[varname]], df$fsgs_recurr)
+
+  n_no_recur   <- tbl["1", "No Recurrence"]
+  pct_no_recur <- round(100 * n_no_recur / sum(tbl[, "No Recurrence"]), 1)
+
+  n_recur   <- tbl["1", "Recurrence"]
+  pct_recur <- round(100 * n_recur / sum(tbl[, "Recurrence"]), 1)
+
+  # Decide Chi-sq vs Fisher's based on expected cell counts (cheat sheet rule)
+  expected <- chisq.test(tbl)$expected
+  if (min(expected) < 5) {
+    test_used <- "Fisher's exact"
+    p_value <- fisher.test(tbl)$p.value
+  } else {
+    test_used <- "Chi-sq"
+    p_value <- chisq.test(tbl)$p.value
+  }
+
+  data.frame(
+    Variable      = varname,
+    No_Recurrence = paste0(n_no_recur, " (", pct_no_recur, "%)"),
+    Recurrence    = paste0(n_recur, " (", pct_recur, "%)"),
+    P_value       = round(p_value, 3),
+    Test          = test_used
+  )
+}
+
+# ---- Run it for each induction regimen, one at a time ----
+result_i_thy      <- analyze_variable("i_thy")
+result_i_il2r     <- analyze_variable("i_il2r")
+result_i_ale      <- analyze_variable("i_ale")
+result_i_il2r_thy <- analyze_variable("i_il2r_thy")
+result_i_ritu_all <- analyze_variable("i_ritu_all")
+
+# ---- Run it for each maintenance regimen, one at a time ----
+result_c_ci_mmf     <- analyze_variable("c_ci_mmf")
+result_c_bela_based <- analyze_variable("c_bela_based")
+result_c_mtor_based <- analyze_variable("c_mtor_based")
+
+# ---- Check any single one before combining everything ----
+result_i_ale   # this is the one that turned out significant, p = 0.037
+
+# ---- Stack all 8 results into one table ----
+immunosuppression_table <- rbind(
+  result_i_thy, result_i_il2r, result_i_ale, result_i_il2r_thy, result_i_ritu_all,
+  result_c_ci_mmf, result_c_bela_based, result_c_mtor_based
+)
+immunosuppression_table
+
+# ---- Save to Excel ----
+library(writexl)
+write_xlsx(immunosuppression_table, "Induction_Maintenance_Results.xlsx")
+`;
+
+const CONFIRMED_RESULTS = {
+  induction: [
+    { label: "Thymoglobulin (ATG) regimen", noRecur: "6,438 (63.5%)", recur: "392 (60.2%)", p: "0.100", test: "Chi-sq" },
+    { label: "Interleukin2 (IL2) regimen", noRecur: "1,606 (15.8%)", recur: "89 (13.7%)", p: "0.156", test: "Chi-sq" },
+    { label: "Alemtuzumab regimen", noRecur: "1,594 (15.7%)", recur: "123 (18.9%)", p: "0.037", test: "Chi-sq", sig: true },
+    { label: "ATG+IL2 regimen", noRecur: "201 (2.0%)", recur: "20 (3.1%)", p: "0.078", test: "Chi-sq" },
+    { label: "Any Rituximab regimen", noRecur: "299 (2.9%)", recur: "27 (4.1%)", p: "0.107", test: "Chi-sq" },
+  ],
+  maintenance: [
+    { label: "CNI+MMF", noRecur: "9,792 (96.6%)", recur: "629 (96.6%)", p: "1.000", test: "Chi-sq" },
+    { label: "Belatacept-based", noRecur: "283 (2.8%)", recur: "17 (2.6%)", p: "0.882", test: "Chi-sq" },
+    { label: "MTOR-based", noRecur: "63 (0.6%)", recur: "5 (0.8%)", p: "0.605", test: "Fisher's exact" },
+  ],
+};
 
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
@@ -899,8 +992,11 @@ const TEST_STYLE = {
 
 function Task2Script() {
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState("stepwise");
-  const activeScript = mode === "stepwise" ? TASK2_SCRIPT_STEPWISE : TASK2_SCRIPT;
+  const [mode, setMode] = useState("individual");
+  const activeScript =
+    mode === "stepwise" ? TASK2_SCRIPT_STEPWISE :
+    mode === "individual" ? TASK2_SCRIPT_INDIVIDUAL :
+    TASK2_SCRIPT;
   const copyScript = async () => {
     try {
       await navigator.clipboard.writeText(activeScript);
@@ -946,6 +1042,12 @@ function Task2Script() {
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-stone-200 overflow-hidden">
             <button
+              onClick={() => setMode("individual")}
+              className={"px-2.5 py-1 text-xs " + (mode === "individual" ? "bg-stone-800 text-white" : "bg-white text-stone-500 hover:bg-stone-50")}
+            >
+              Individual (per-variable)
+            </button>
+            <button
               onClick={() => setMode("stepwise")}
               className={"px-2.5 py-1 text-xs " + (mode === "stepwise" ? "bg-stone-800 text-white" : "bg-white text-stone-500 hover:bg-stone-50")}
             >
@@ -967,12 +1069,61 @@ function Task2Script() {
         </div>
       </div>
       <p className="text-xs text-stone-500 mb-2">
-        {mode === "stepwise"
+        {mode === "individual"
+          ? "Calculates n (%) and a p-value for each regimen ONE AT A TIME using a small reusable helper function \u2014 this is the approach Rishi used, and it's the easiest to follow since every number is traceable back to a single table()/chisq.test() call."
+          : mode === "stepwise"
           ? "Each step is saved under its own name (step1_selected, step2_summary...) so you can check what each stage produced before moving to the next \u2014 easiest to follow if R/dplyr is new."
           : "The same script written with the %>% pipe (\"and then\") to chain all the steps together \u2014 more compact once the individual steps feel familiar."}
       </p>
       <div className="rounded-lg border border-stone-200 bg-stone-900 overflow-hidden mb-8">
         <pre className="text-[12px] leading-relaxed text-stone-100 p-4 overflow-x-auto font-mono whitespace-pre">{activeScript}</pre>
+      </div>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-1">Confirmed results \u2014 induction &amp; maintenance</h2>
+      <p className="text-sm text-stone-500 mb-3">
+        Computed directly from Project1.dta. Alemtuzumab is the only individually significant
+        regimen \u2014 it's what's driving the earlier combined i_cat p = 0.010 result.
+      </p>
+      <div className="rounded-lg border border-stone-200 bg-white overflow-hidden mb-3">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-stone-100 text-stone-600 text-left">
+              <th className="px-3 py-2 font-medium">Regimen</th>
+              <th className="px-3 py-2 font-medium">No Recurrence</th>
+              <th className="px-3 py-2 font-medium">Recurrence</th>
+              <th className="px-3 py-2 font-medium">P-value</th>
+              <th className="px-3 py-2 font-medium">Test</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-stone-50"><td colSpan={5} className="px-3 py-1.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Induction therapy</td></tr>
+            {CONFIRMED_RESULTS.induction.map((r, i) => (
+              <tr key={r.label} className={r.sig ? "bg-amber-50" : i % 2 === 0 ? "bg-white" : "bg-stone-50"}>
+                <td className="px-3 py-2 text-stone-700">{r.label}</td>
+                <td className="px-3 py-2 text-stone-600">{r.noRecur}</td>
+                <td className="px-3 py-2 text-stone-600">{r.recur}</td>
+                <td className={"px-3 py-2 " + (r.sig ? "font-semibold text-amber-800" : "text-stone-600")}>{r.p}</td>
+                <td className="px-3 py-2 text-stone-400 text-xs">{r.test}</td>
+              </tr>
+            ))}
+            <tr className="bg-stone-50"><td colSpan={5} className="px-3 py-1.5 text-xs font-medium text-stone-500 uppercase tracking-wide">Maintenance therapy</td></tr>
+            {CONFIRMED_RESULTS.maintenance.map((r, i) => (
+              <tr key={r.label} className={i % 2 === 0 ? "bg-white" : "bg-stone-50"}>
+                <td className="px-3 py-2 text-stone-700">{r.label}</td>
+                <td className="px-3 py-2 text-stone-600">{r.noRecur}</td>
+                <td className="px-3 py-2 text-stone-600">{r.recur}</td>
+                <td className="px-3 py-2 text-stone-600">{r.p}</td>
+                <td className="px-3 py-2 text-stone-400 text-xs">{r.test}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-stone-700 mb-8">
+        <span className="font-medium text-amber-800">Worth flagging in the write-up: </span>
+        running 8 separate tests instead of 1 increases the chance one turns up "significant" by
+        chance alone (the multiple-comparisons problem). Worth a sentence in limitations, or ask
+        the mentor if a correction (e.g., Bonferroni) is expected.
       </div>
 
       <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-stone-700">
