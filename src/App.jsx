@@ -689,8 +689,8 @@ const CLARIFYING_QUESTIONS = [
   },
   {
     id: "q2",
-    question: "We tested 8 different drugs separately instead of one big test, and only one of them \u2014 Alemtuzumab \u2014 came out significant, and only barely (p = 0.037). Since we ran 8 separate tests, isn't there a decent chance one of them looks \"significant\" just by luck? Should we be doing something to account for testing 8 things at once?",
-    why: "This is called the \"multiple comparisons problem.\" If the answer is yes, our Alemtuzumab finding might not be as solid as it looks.",
+    question: "We tested induction and maintenance regimens separately \u2014 5 induction options and 3 maintenance options, 8 tests total \u2014 instead of one big test. Only one came out significant, and only barely: Alemtuzumab (an induction option), p = 0.037. Since we ran 8 separate tests, isn't there a decent chance one of them looks \"significant\" just by luck? Should we correct for that, and if so, should induction and maintenance be corrected separately (since they're different treatment decisions) or all together?",
+    why: "This is called the \"multiple comparisons problem.\" If the answer is yes, our Alemtuzumab finding might not be as solid as it looks \u2014 worth checking either way it's corrected, it likely doesn't clear the bar.",
   },
   {
     id: "q3",
