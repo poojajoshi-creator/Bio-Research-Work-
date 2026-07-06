@@ -15,6 +15,7 @@ import {
   FileText,
   Code2,
   Copy,
+  MessageCircleQuestion,
 } from "lucide-react";
 
 const STORAGE_KEY = "fsgs-portal-data";
@@ -680,6 +681,29 @@ const CONFIRMED_RESULTS = {
   ],
 };
 
+const CLARIFYING_QUESTIONS = [
+  {
+    id: "q1",
+    question: "Our recurrence rate came out really low \u2014 only 6% (651 out of 10,789 patients). But the articles we read said FSGS usually comes back in 30\u201350% of patients. Is that big gap normal for this dataset, or could it mean we're counting \"recurrence\" differently than those other studies did?",
+    why: "This is the single biggest number in our whole project, so it's worth double-checking we're not misreading it.",
+  },
+  {
+    id: "q2",
+    question: "We tested 8 different drugs separately instead of one big test, and only one of them \u2014 Alemtuzumab \u2014 came out significant, and only barely (p = 0.037). Since we ran 8 separate tests, isn't there a decent chance one of them looks \"significant\" just by luck? Should we be doing something to account for testing 8 things at once?",
+    why: "This is called the \"multiple comparisons problem.\" If the answer is yes, our Alemtuzumab finding might not be as solid as it looks.",
+  },
+  {
+    id: "q3",
+    question: "We also found that age, race, and how long people waited for a transplant were all significantly different between the recurrence and no-recurrence groups. Could it be that Alemtuzumab isn't really the cause of recurrence \u2014 maybe it's just that a certain type of patient (younger, etc.) happens to get Alemtuzumab more often, and THEY were always more likely to recur anyway? How do we tell the difference?",
+    why: "This is exactly what the Cox regression in Task iii is supposed to help sort out \u2014 good to confirm that's the plan.",
+  },
+  {
+    id: "q4",
+    question: "Almost half of our patients (about 46%) are missing a GFR value, and that variable came out significant (p = 0.031). Is it still okay to report that result, or should we say something in our paper about how much data was missing for that one?",
+    why: "A result built on lots of missing data is weaker evidence than one with a full dataset \u2014 worth knowing how to talk about it honestly.",
+  },
+];
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -1136,6 +1160,96 @@ function Task2Script() {
   );
 }
 
+const QUESTIONS_STORAGE_KEY = "fsgs-portal-questions";
+
+function ClarifyingQuestions() {
+  const [data, setData] = useState(null);
+  const [saveState, setSaveState] = useState("idle");
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    setData(loadJSON(QUESTIONS_STORAGE_KEY));
+  }, []);
+
+  const persist = useCallback((next) => {
+    setSaveState("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const ok = saveJSON(QUESTIONS_STORAGE_KEY, next);
+      setSaveState(ok ? "saved" : "idle");
+    }, 400);
+  }, []);
+
+  if (data === null) {
+    return <div className="w-full py-12 text-center text-stone-500 font-serif">Loading questions...</div>;
+  }
+
+  const entryFor = (id) => data[id] || { asked: false, answer: "" };
+  const update = (id, partial) => {
+    const next = { ...data, [id]: { ...entryFor(id), ...partial } };
+    setData(next);
+    persist(next);
+  };
+
+  const askedCount = CLARIFYING_QUESTIONS.filter((q) => entryFor(q.id).asked).length;
+
+  return (
+    <div className="px-6 md:px-8 py-6 max-w-3xl">
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="font-serif text-2xl text-stone-800">Questions for the mentor</h1>
+        <span className="font-mono text-xs text-stone-400">{askedCount}/{CLARIFYING_QUESTIONS.length} asked</span>
+      </div>
+      <p className="text-sm text-stone-500 mb-6">
+        Pulled together from today's work on Task ii. Written in plain language \u2014 use your own
+        words when you actually ask, this is just to remember what to bring up.
+      </p>
+
+      <div className="space-y-3">
+        {CLARIFYING_QUESTIONS.map((q, i) => {
+          const entry = entryFor(q.id);
+          return (
+            <div key={q.id} className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+              <div className="px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <button onClick={() => update(q.id, { asked: !entry.asked })} className="mt-0.5 shrink-0">
+                    {entry.asked ? (
+                      <CheckCircle2 size={19} className="text-teal-600" />
+                    ) : (
+                      <Circle size={19} className="text-stone-300" />
+                    )}
+                  </button>
+                  <div className="flex-1">
+                    <p className={"text-sm leading-relaxed " + (entry.asked ? "text-stone-400 line-through" : "text-stone-800")}>
+                      <span className="font-mono text-xs text-stone-400 mr-1.5">{i + 1}.</span>
+                      {q.question}
+                    </p>
+                    <p className="text-xs text-stone-500 mt-2 italic">Why it matters: {q.why}</p>
+                  </div>
+                </div>
+                <div className="mt-3 ml-8">
+                  <label className="text-xs font-medium text-stone-500 mb-1 block">Mentor's answer</label>
+                  <textarea
+                    value={entry.answer}
+                    onChange={(e) => update(q.id, { answer: e.target.value })}
+                    placeholder="Jot down what the mentor says here..."
+                    className="w-full h-16 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-700 focus:outline-none focus:border-teal-400 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 text-right">
+        <span className="text-xs font-mono text-stone-400">
+          {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved" : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function ProjectNotes() {
   return (
     <div className="px-6 md:px-8 py-6 max-w-3xl">
@@ -1337,6 +1451,12 @@ export default function App() {
           >
             <Code2 size={12} /> Script
           </button>
+          <button
+            onClick={() => setView("questions")}
+            className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "questions" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+          >
+            <MessageCircleQuestion size={12} /> Questions
+          </button>
         </div>
 
         {view === "notebook" && (
@@ -1398,6 +1518,10 @@ export default function App() {
       ) : view === "script" ? (
         <div className="flex-1 overflow-y-auto">
           <Task2Script />
+        </div>
+      ) : view === "questions" ? (
+        <div className="flex-1 overflow-y-auto">
+          <ClarifyingQuestions />
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-w-0">
