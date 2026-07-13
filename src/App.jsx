@@ -16,6 +16,7 @@ import {
   Code2,
   Copy,
   MessageCircleQuestion,
+  Activity,
 } from "lucide-react";
 
 const STORAGE_KEY = "fsgs-portal-data";
@@ -704,6 +705,74 @@ const CLARIFYING_QUESTIONS = [
   },
 ];
 
+const TASK3_SCRIPT = `library(survival)
+library(haven)
+
+df <- read_dta("Project1.dta")
+
+# ---- Step 1: Kaplan-Meier curve for GRAFT survival, by recurrence status ----
+# Surv(time, status): time = days followed, status = 1 if event happened, 0 if not (censored)
+km_graft <- survfit(Surv(GTIME_KI, GSTATUS_KI) ~ fsgs_recurr, data = df)
+plot(km_graft, col = c("blue", "red"), xlab = "Days", ylab = "Graft Survival Probability")
+legend("bottomleft", legend = c("No Recurrence", "Recurrence"), col = c("blue", "red"), lty = 1)
+
+# Log-rank test: are the two curves significantly different?
+survdiff(Surv(GTIME_KI, GSTATUS_KI) ~ fsgs_recurr, data = df)
+
+# ---- Step 2: Cox regression for GRAFT survival ----
+# Tests multiple predictors at once, adjusting for each other
+cox_graft <- coxph(Surv(GTIME_KI, GSTATUS_KI) ~
+                      i_thy + i_il2r + i_ale + i_il2r_thy + i_ritu_all +
+                      c_ci_mmf + c_bela_based + c_mtor_based +
+                      agegrp + male_pt,
+                    data = df)
+summary(cox_graft)   # look for "exp(coef)" = the HR, and "Pr(>|z|)" = the p-value
+
+# ---- Step 3: Same thing for PATIENT survival ----
+km_patient <- survfit(Surv(PTIME, PSTATUS) ~ fsgs_recurr, data = df)
+plot(km_patient, col = c("blue", "red"), xlab = "Days", ylab = "Patient Survival Probability")
+
+survdiff(Surv(PTIME, PSTATUS) ~ fsgs_recurr, data = df)
+
+cox_patient <- coxph(Surv(PTIME, PSTATUS) ~
+                        i_thy + i_il2r + i_ale + i_il2r_thy + i_ritu_all +
+                        c_ci_mmf + c_bela_based + c_mtor_based +
+                        agegrp + male_pt,
+                      data = df)
+summary(cox_patient)
+
+# ---- Step 4: Export the Cox results to Excel ----
+library(broom)
+library(writexl)
+
+graft_results   <- tidy(cox_graft, exponentiate = TRUE, conf.int = TRUE)
+patient_results <- tidy(cox_patient, exponentiate = TRUE, conf.int = TRUE)
+
+write_xlsx(
+  list(Graft_Survival = graft_results, Patient_Survival = patient_results),
+  "Task3_Cox_Results.xlsx"
+)
+`;
+
+const COX_CONCEPTS = [
+  {
+    title: "What Cox regression actually asks",
+    body: "Chi-square and t-test compare groups at one snapshot. Cox regression is different: it accounts for HOW LONG each patient was followed, and tests several variables at once instead of one at a time. At any moment, some patients are still \"at risk\" (graft still working, still alive) and some already had the event. Cox asks: does having a certain characteristic change how likely someone is to have the event at any given moment, after adjusting for other factors?",
+  },
+  {
+    title: "The Hazard Ratio (HR) \u2014 the key number it gives you",
+    body: "HR = 1 \u2192 no effect. HR > 1 \u2192 higher risk (e.g., HR = 1.5 means 50% higher risk of the event at any moment). HR < 1 \u2192 lower risk / protective (e.g., HR = 0.7 means 30% lower risk). Look for it in the R output as \"exp(coef)\".",
+  },
+  {
+    title: "Surv(time, status) \u2014 the two ingredients every survival model needs",
+    body: "time = how many days that patient was actually followed. status = 1 if the event happened (graft failed, or died) during that time, 0 if not (they were still fine when we stopped watching \u2014 called \"censored\"). For graft survival: GTIME_KI and GSTATUS_KI. For patient survival: PTIME and PSTATUS.",
+  },
+  {
+    title: "Kaplan-Meier vs. Cox \u2014 what's the difference?",
+    body: "Kaplan-Meier (survfit()) draws a simple curve comparing 2 groups over time, with one log-rank p-value \u2014 similar spirit to a Chi-square test, but over time instead of one snapshot. Cox regression (coxph()) can test MANY variables at once (all 8 regimens plus age and sex together), adjusting each for the others \u2014 this is what actually answers \"is Alemtuzumab associated with worse graft survival, even after accounting for age?\"",
+  },
+];
+
 function formatDate(iso) {
   const d = new Date(iso + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -1250,6 +1319,63 @@ function ClarifyingQuestions() {
   );
 }
 
+function Task3Script() {
+  const [copied, setCopied] = useState(false);
+  const copyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(TASK3_SCRIPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  return (
+    <div className="px-6 md:px-8 py-6 max-w-3xl">
+      <h1 className="font-serif text-2xl text-stone-800 mb-1">Task iii \u2014 Survival Analysis</h1>
+      <p className="mt-1 inline-flex items-center gap-1.5 text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1 text-xs font-medium mb-4">
+        <AlertCircle size={13} /> Due noon ET today
+      </p>
+      <p className="text-sm text-stone-500 mb-6">
+        Kaplan-Meier curves + Cox regression, for both graft survival (GTIME_KI/GSTATUS_KI) and
+        patient survival (PTIME/PSTATUS).
+      </p>
+
+      <h2 className="font-serif text-lg text-stone-800 mb-2">The concepts, in plain language</h2>
+      <div className="space-y-3 mb-8">
+        {COX_CONCEPTS.map((c) => (
+          <div key={c.title} className="rounded-lg border border-stone-200 bg-white px-4 py-3">
+            <p className="text-sm font-medium text-stone-800 mb-1">{c.title}</p>
+            <p className="text-sm text-stone-600">{c.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-serif text-lg text-stone-800">Full R script</h2>
+        <button
+          onClick={copyScript}
+          className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded px-2 py-1"
+        >
+          <Copy size={12} /> {copied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+      <div className="rounded-lg border border-stone-200 bg-stone-900 overflow-hidden mb-8">
+        <pre className="text-[12px] leading-relaxed text-stone-100 p-4 overflow-x-auto font-mono whitespace-pre">{TASK3_SCRIPT}</pre>
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-stone-700">
+        <span className="font-medium text-amber-800">Reading the output: </span>
+        in the <code className="text-xs bg-white px-1 rounded">summary(cox_graft)</code> printout,
+        the column <code className="text-xs bg-white px-1 rounded">exp(coef)</code> is the Hazard
+        Ratio for each variable, and <code className="text-xs bg-white px-1 rounded">Pr(&gt;|z|)</code> is
+        its p-value \u2014 same &le;0.05 rule as before decides significance.
+      </div>
+    </div>
+  );
+}
+
 function ProjectNotes() {
   return (
     <div className="px-6 md:px-8 py-6 max-w-3xl">
@@ -1449,7 +1575,13 @@ export default function App() {
             onClick={() => setView("script")}
             className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "script" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
           >
-            <Code2 size={12} /> Script
+            <Code2 size={12} /> T2 Script
+          </button>
+          <button
+            onClick={() => setView("task3")}
+            className={"flex-1 py-2.5 text-[11px] font-medium inline-flex items-center justify-center gap-1 " + (view === "task3" ? "bg-stone-800 text-white" : "text-stone-400 hover:bg-stone-800/60")}
+          >
+            <Activity size={12} /> T3 Cox
           </button>
           <button
             onClick={() => setView("questions")}
@@ -1518,6 +1650,10 @@ export default function App() {
       ) : view === "script" ? (
         <div className="flex-1 overflow-y-auto">
           <Task2Script />
+        </div>
+      ) : view === "task3" ? (
+        <div className="flex-1 overflow-y-auto">
+          <Task3Script />
         </div>
       ) : view === "questions" ? (
         <div className="flex-1 overflow-y-auto">
